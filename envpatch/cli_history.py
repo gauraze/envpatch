@@ -30,6 +30,29 @@ def history_list(hist_file: str, source: str, tag: str):
             click.echo(f"  {line}")
 
 
+@history_cmd.command("show")
+@click.argument("index", type=int)
+@click.option("--file", "hist_file", default=str(DEFAULT_HISTORY), show_default=True)
+def history_show(index: int, hist_file: str):
+    """Show details of a single history entry by index (0-based)."""
+    path = Path(hist_file)
+    entries = load_history(path)
+    if not entries:
+        click.echo("No history entries found.")
+        return
+    if index < 0 or index >= len(entries):
+        click.echo(f"Index {index} out of range (0-{len(entries) - 1}).")
+        raise SystemExit(1)
+    e = entries[index]
+    tag_str = f" [{e.tag}]" if e.tag else ""
+    click.echo(f"Entry {index}: {e.timestamp}{tag_str}")
+    click.echo(f"  Source: {e.source}")
+    click.echo(f"  Target: {e.target}")
+    click.echo(f"  Changes: {e.changes}")
+    for line in e.summary:
+        click.echo(f"  {line}")
+
+
 @history_cmd.command("clear")
 @click.option("--file", "hist_file", default=str(DEFAULT_HISTORY), show_default=True)
 @click.confirmation_option(prompt="Clear all history?")
