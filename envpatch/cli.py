@@ -1,20 +1,10 @@
-"""CLI entry point for envpatch."""
-from __future__ import annotations
-
-import sys
-from pathlib import Path
-
+"""Main CLI entry point for envpatch."""
 import click
 
-from envpatch.diff import ChangeType, diff_env_files
-from envpatch.parser import parse_env_file
-
-COLORS = {
-    ChangeType.ADDED: "green",
-    ChangeType.REMOVED: "red",
-    ChangeType.MODIFIED: "yellow",
-    ChangeType.UNCHANGED: None,
-}
+from envpatch.parser import EnvFile
+from envpatch.diff import diff_env_files
+from envpatch.cli_validate import validate_cmd
+from envpatch.cli_snapshot import snapshot_cmd
 
 
 @click.group()
@@ -23,28 +13,23 @@ def cli():
 
 
 @cli.command("diff")
-@click.argument("base", type=click.Path(exists=True, path_type=Path))
-@click.argument("target", type=click.Path(exists=True, path_type=Path))
-@click.option("--unchanged", is_flag=True, default=False, help="Show unchanged keys too.")
-@click.option("--no-color", is_flag=True, default=False, help="Disable colored output.")
-def diff_cmd(base: Path, target: Path, unchanged: bool, no_color: bool):
-    """Show diff between BASE and TARGET .env files."""
-    try:
-        base_env = parse_env_file(base)
-        target_env = parse_env_file(target)
-    except FileNotFoundError as exc:
-        click.echo(f"Error: {exc}", err=True)
-        sys.exit(1)
-
-    entries = diff_env_files(base_env, target_env, include_unchanged=unchanged)
-
+@click.argument("base_file", type=click.Path(exists=True))
+@click.argument("other_file", type=click.Path(exists=True))
+@click.option("--include-unchanged", is_flag=True, default=False)
+def diff_cmd(base_file, other_file, include_unchanged):
+    """Show diff between BASE_FILE and OTHER_FILE."""
+    base = EnvFile.parse(open(base_file).read())
+    other = EnvFile.parse(open(other_file).read())
+    entries = diff_env_files(base, other, include_unchanged=include_unchanged)
     if not entries:
         click.echo("No differences found.")
         return
+    for e in entries:
+        click.echo(str(e))
 
-    for entry in entries:
-        color = None if no_color else COLORS.get(entry.change)
-        click.echo(click.style(str(entry), fg=color))
+
+cli.add_command(validate_cmd, name="validate")
+cli.add_command(snapshot_cmd, name="snapshot")
 
 
 def main():
