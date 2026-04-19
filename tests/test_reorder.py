@@ -51,3 +51,17 @@ def test_to_dotenv_output():
     result = reorder_env(env, order=["A", "B"])
     output = result.to_dotenv()
     assert output == "A=1\nB=2\n"
+
+
+def test_reorder_empty_env():
+    """Reordering an empty EnvFile should return an empty EnvFile without error."""
+    env = make_env([])
+    result = reorder_env(env, order=["A", "B"])
+    assert result.entries == []
+
+
+def test_reorder_empty_order_appends_remaining():
+    """An empty order with append_remaining=True should preserve all entries."""
+    env = make_env([("A", "1"), ("B", "2")])
+    result = reorder_env(env, order=[], append_remaining=True)
+    assert {e.key for e in result.entries} == {"A", "B"}
