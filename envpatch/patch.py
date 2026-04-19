@@ -24,6 +24,10 @@ def apply_patch(
 
     Returns:
         A new EnvFile reflecting the applied changes.
+
+    Raises:
+        ValueError: If a MODIFIED or REMOVED entry references a key not present
+            in the target and strict mode is implied by the change type.
     """
     lines: list[str] = list(target.raw_lines)
     # Build index: key -> line number
@@ -36,7 +40,12 @@ def apply_patch(
 
     for entry in changes:
         if entry.change_type == ChangeType.ADDED:
-            lines.append(f"{entry.key}={entry.new_value}\n")
+            if entry.key in key_to_line:
+                # Key already exists; update in place instead of duplicating
+                idx = key_to_line[entry.key]
+                lines[idx] = f"{entry.key}={entry.new_value}\n"
+            else:
+                lines.append(f"{entry.key}={entry.new_value}\n")
         elif entry.change_type == ChangeType.REMOVED:
             idx = key_to_line.get(entry.key)
             if idx is not None:
