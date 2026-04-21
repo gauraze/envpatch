@@ -41,3 +41,9 @@ def test_check_passes_empty_with_allow_empty(runner, tmp_path):
     result = runner.invoke(required_cmd, ["check", f, "-k", "SECRET", "--allow-empty"])
     assert result.exit_code == 0
     assert "All required keys present" in result.output
+
+
+def test_check_fails_on_nonexistent_file(runner, tmp_path):
+    missing_file = str(tmp_path / "nonexistent.env")
+    result = runner.invoke(required_cmd, ["check", missing_file, "-k", "FOO"])
+    assert result.exit_code != 0
