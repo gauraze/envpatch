@@ -16,8 +16,15 @@ def copy_cmd():
 @click.option("--dry-run", is_flag=True, default=False, help="Preview without writing")
 def copy_run(source, target, keys, overwrite, dry_run):
     """Copy keys from SOURCE into TARGET."""
-    src = EnvFile.parse(open(source).read())
-    tgt = EnvFile.parse(open(target).read())
+    try:
+        src = EnvFile.parse(open(source).read())
+    except Exception as e:
+        raise click.ClickException(f"Failed to read source file '{source}': {e}")
+
+    try:
+        tgt = EnvFile.parse(open(target).read())
+    except Exception as e:
+        raise click.ClickException(f"Failed to read target file '{target}': {e}")
 
     selected = list(keys) if keys else None
     updated, result = copy_keys(src, tgt, keys=selected, overwrite=overwrite)
@@ -38,6 +45,9 @@ def copy_run(source, target, keys, overwrite, dry_run):
         return
 
     lines = [e.raw for e in updated.entries]
-    with open(target, "w") as f:
-        f.write("\n".join(lines) + "\n")
+    try:
+        with open(target, "w") as f:
+            f.write("\n".join(lines) + "\n")
+    except Exception as e:
+        raise click.ClickException(f"Failed to write target file '{target}': {e}")
     click.echo(f"Written to {target}")
